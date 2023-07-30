@@ -14,14 +14,16 @@ EXTENSION_FUNCTIONS = extension-functions.c
 EXTENSION_FUNCTIONS_URL = https://www.sqlite.org/contrib/download/extension-functions.c?get=25
 EXTENSION_FUNCTIONS_SHA1 = c68fa706d6d9ff98608044c00212473f9c14892f
 
+FTS5_EXTENSIONS = fts5-extensions.c
+FTS5_EXTENSIONS_PATH = fts5-extensions.c
+
 EMCC=emcc
 
 SQLITE_COMPILATION_FLAGS = \
 	-Oz \
 	-DSQLITE_OMIT_LOAD_EXTENSION \
 	-DSQLITE_DISABLE_LFS \
-	-DSQLITE_ENABLE_FTS3 \
-	-DSQLITE_ENABLE_FTS3_PARENTHESIS \
+	-DSQLITE_ENABLE_FTS5 \
 	-DSQLITE_THREADSAFE=0 \
 	-DSQLITE_ENABLE_NORMALIZE
 
@@ -58,7 +60,7 @@ EMFLAGS_DEBUG = \
 	-s ASSERTIONS=1 \
 	-O1
 
-BITCODE_FILES = out/sqlite3.bc out/extension-functions.bc
+BITCODE_FILES = out/sqlite3.bc out/extension-functions.bc out/fts5-extensions.bc
 
 OUTPUT_WRAPPER_FILES = src/shell-pre.js src/shell-post.js
 
@@ -152,6 +154,10 @@ out/extension-functions.bc: sqlite-src/$(SQLITE_AMALGAMATION)
 	# Generate llvm bitcode
 	$(EMCC) $(SQLITE_COMPILATION_FLAGS) -c sqlite-src/$(SQLITE_AMALGAMATION)/extension-functions.c -o $@
 
+out/fts5-extensions.bc: sqlite-src/$(SQLITE_AMALGAMATION)
+	mkdir -p out
+	$(EMCC) $(SQLITE_COMPILATION_FLAGS) -c sqlite-src/$(SQLITE_AMALGAMATION)/fts5-extensions.c -o $@
+
 # TODO: This target appears to be unused. If we re-instatate it, we'll need to add more files inside of the JS folder
 # module.tar.gz: test package.json AUTHORS README.md dist/sql-asm.js
 # 	tar --create --gzip $^ > $@
@@ -165,11 +171,15 @@ cache/$(EXTENSION_FUNCTIONS):
 	mkdir -p cache
 	curl -LsSf '$(EXTENSION_FUNCTIONS_URL)' -o $@
 
+cache/$(FTS5_EXTENSIONS):
+	mkdir -p cache
+	cp '$(FTS5_EXTENSIONS_PATH)' $@
+
 ## sqlite-src
 .PHONY: sqlite-src
-sqlite-src: sqlite-src/$(SQLITE_AMALGAMATION) sqlite-src/$(SQLITE_AMALGAMATION)/$(EXTENSION_FUNCTIONS)
+sqlite-src: sqlite-src/$(SQLITE_AMALGAMATION) sqlite-src/$(SQLITE_AMALGAMATION)/$(EXTENSION_FUNCTIONS) sqlite-src/$(SQLITE_AMALGAMATION)/$(FTS5_EXTENSIONS)
 
-sqlite-src/$(SQLITE_AMALGAMATION): cache/$(SQLITE_AMALGAMATION).zip sqlite-src/$(SQLITE_AMALGAMATION)/$(EXTENSION_FUNCTIONS)
+sqlite-src/$(SQLITE_AMALGAMATION): cache/$(SQLITE_AMALGAMATION).zip sqlite-src/$(SQLITE_AMALGAMATION)/$(EXTENSION_FUNCTIONS) sqlite-src/$(SQLITE_AMALGAMATION)/$(FTS5_EXTENSIONS)
 	mkdir -p sqlite-src/$(SQLITE_AMALGAMATION)
 	echo '$(SQLITE_AMALGAMATION_ZIP_SHA3)  ./cache/$(SQLITE_AMALGAMATION).zip' > cache/check.txt
 	sha3sum -a 256 -c cache/check.txt
@@ -185,6 +195,9 @@ sqlite-src/$(SQLITE_AMALGAMATION)/$(EXTENSION_FUNCTIONS): cache/$(EXTENSION_FUNC
 	sha1sum -c cache/check.txt
 	cp 'cache/$(EXTENSION_FUNCTIONS)' $@
 
+sqlite-src/$(SQLITE_AMALGAMATION)/$(FTS5_EXTENSIONS): cache/$(FTS5_EXTENSIONS)
+	mkdir -p sqlite-src/$(SQLITE_AMALGAMATION)
+	cp 'cache/$(FTS5_EXTENSIONS)' $@
 
 .PHONY: clean
 clean:

@@ -239,6 +239,12 @@ Module["onRuntimeInitialized"] = function onRuntimeInitialized() {
         ["number"]
     );
 
+    var registerFTS5Extensions = cwrap(
+        "RegisterFTS5Extensions",
+        "number",
+        ["number"]
+    );
+
     /**
     * @classdesc
     * Represents a prepared statement.
@@ -830,6 +836,7 @@ Module["onRuntimeInitialized"] = function onRuntimeInitialized() {
         this.handleError(sqlite3_open(this.filename, apiTemp));
         this.db = getValue(apiTemp, "i32");
         registerExtensionFunctions(this.db);
+        registerFTS5Extensions(this.db);
         // A list of all prepared statements of the database
         this.statements = {};
         // A list of all user function of the database
